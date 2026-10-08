@@ -60,4 +60,11 @@ public class Deck {
         }
         cards.add(card);
     }
+
+    public Card peekTopCard() {
+        if (cards.isEmpty()) {
+            throw new IllegalStateException("Cannot peek at an empty deck");
+        }
+        return cards.get(0);
+    }
 }

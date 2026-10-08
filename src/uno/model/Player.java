@@ -17,4 +17,8 @@ public class Player {
     public Hand getHand() {
         return hand;
     }
+
+    public void drawCard(Card card) {
+        hand.addCard(card);
+    }
 }
