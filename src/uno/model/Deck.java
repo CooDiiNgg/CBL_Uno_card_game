@@ -14,6 +14,13 @@ public class Deck {
         shuffle();
     }
 
+    public Deck(List<Card> cards) {
+        if (cards == null) {
+            throw new IllegalArgumentException("Cards cannot be null");
+        }
+        this.cards = new ArrayList<>(cards);
+    }
+
     private void initializeDeck() {
         for (Color color : Color.getAllColors()) {
             for (Value value : Value.getAllValues()) {
@@ -50,7 +57,14 @@ public class Deck {
         if (otherDeck == null) {
             throw new IllegalArgumentException("Other deck cannot be null");
         }
-        cards.addAll(otherDeck.cards);
+        for (Card card : otherDeck.cards) {
+            if (card.getValue() == Value.WILD.getValue() || card.getValue() == Value.WILD_DRAW_FOUR.getValue()) {
+                cards.add(new Card(Color.SPECIAL, card.getValue()));
+            } else {
+                cards.add(card);
+            }
+        }
+        otherDeck.cards.clear();
         shuffle();
     }
 
@@ -58,7 +72,7 @@ public class Deck {
         if (card == null) {
             throw new IllegalArgumentException("Card cannot be null");
         }
-        cards.add(card);
+        cards.add(0, card);
     }
 
     public Card peekTopCard() {
@@ -66,5 +80,9 @@ public class Deck {
             throw new IllegalStateException("Cannot peek at an empty deck");
         }
         return cards.get(0);
+    }
+
+    public List<Card> getCards() {
+        return new ArrayList<>(cards);
     }
 }

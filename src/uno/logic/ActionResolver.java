@@ -1,6 +1,7 @@
 package uno.logic;
 
 import uno.model.Card;
+import uno.model.Deck;
 import uno.util.Color;
 import uno.model.GameState;
 import uno.model.Player;
@@ -11,7 +12,7 @@ public class ActionResolver {
             throw new IllegalArgumentException("GameState cannot be null");
         }
         if (isSkippingTurn) {
-            drawCardsHelper(gameState, gameState.nextPlayer());
+            drawCardsHelper(gameState, gameState.getCurrentPlayer());
             return null;
         }
         if (card == null) {
@@ -25,6 +26,7 @@ public class ActionResolver {
                 handleReverseAction(gameState);
                 break;
             case 12:
+                gameState.setDrawStackCount(gameState.getDrawStackCount() + 2);
                 handleDrawTwoAction(gameState, card);
                 break;
             case 13:
@@ -37,12 +39,39 @@ public class ActionResolver {
         return card;
     }
 
+    public static Card drawFromDeck(GameState gameState) {
+        if (gameState == null) {
+            throw new IllegalArgumentException("GameState cannot be null");
+        }
+        Deck deck = gameState.getDeck();
+        if (deck.isEmpty()) {
+            refillDeck(gameState);
+        }
+        if (deck.isEmpty()) {
+            return null;
+        }
+        return deck.drawCard();
+    }
+
+    private static void refillDeck(GameState gameState) {
+        Deck discardPile = gameState.getDiscardPile();
+        if (discardPile.size() <= 1) {
+            return;
+        }
+        Card topCard = discardPile.drawCard();
+        gameState.getDeck().mergeDeck(discardPile);
+        discardPile.addCard(topCard);
+    }
+
     private static void handleSkipAction(GameState gameState) {
         gameState.nextTurn();
     }
 
     private static void handleReverseAction(GameState gameState) {
         gameState.reverseDirection();
+        if (gameState.getPlayers().length == 2) {
+            gameState.nextTurn();
+        }
     }
 
     private static Card handleWildAction(Color color) {
@@ -52,19 +81,14 @@ public class ActionResolver {
         return new Card(color, 13);
     }
 
-    private static void drawCardsHelper(GameState gameState, Player nextPlayer) {
+    private static void drawCardsHelper(GameState gameState, Player player) {
         int drawStackCount = gameState.getDrawStackCount();
         for (int i = 0; i < drawStackCount; i++) {
-            if (!gameState.getDeck().isEmpty()) {
-                nextPlayer.drawCard(gameState.getDeck().drawCard());
-            } else {
-                gameState.getDeck().mergeDeck(gameState.getDiscardPile());
-                if (!gameState.getDeck().isEmpty()) {
-                    nextPlayer.drawCard(gameState.getDeck().drawCard());
-                } else {
-                    throw new IllegalStateException("No cards left to draw");
-                }
+            Card card = drawFromDeck(gameState);
+            if (card == null) {
+                break;
             }
+            player.drawCard(card);
         }
         gameState.setDrawStackCount(0);
         gameState.nextTurn();
@@ -73,7 +97,7 @@ public class ActionResolver {
     private static void handleDrawTwoAction(GameState gameState, Card card) {
         Player nextPlayer = gameState.nextPlayer();
         for (Card nextPlayerCard : nextPlayer.getHand().getCards()) {
-            if (RuleValidator.isValidMove(nextPlayerCard, card)) {
+            if (RuleValidator.isValidMove(nextPlayerCard, card, gameState.getDrawStackCount())) {
                 return;
             }
         }
@@ -81,10 +105,11 @@ public class ActionResolver {
     }
 
     private static Card handleWildDrawFourAction(GameState gameState, Card card, Color color) {
-        handleDrawTwoAction(gameState, card);
         if (color == null) {
             throw new IllegalArgumentException("Color cannot be null for a wild draw four card");
         }
+        gameState.setDrawStackCount(gameState.getDrawStackCount() + 4);
+        handleDrawTwoAction(gameState, card);
         return new Card(color, 14);
     }
 

@@ -1,5 +1,6 @@
 package uno.model;
 import uno.util.Color;
+import uno.util.Value;
 
 public class Card {
     private Color color;
@@ -16,5 +17,14 @@ public class Card {
 
     public int getValue() {
         return value;
+    }
+
+    @Override
+    public String toString() {
+        String valueName = Value.fromValue(value).name();
+        if (color == Color.SPECIAL) {
+            return valueName;
+        }
+        return color.name() + " " + valueName;
     }
 }

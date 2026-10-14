@@ -52,6 +52,10 @@ public class GameState {
         isClockwise = !isClockwise;
     }
 
+    public void setClockwise(boolean isClockwise) {
+        this.isClockwise = isClockwise;
+    }
+
     public void nextTurn(){
         currentPlayerIndex = (currentPlayerIndex + (isClockwise ? 1 : -1) + players.length) % players.length;
     }

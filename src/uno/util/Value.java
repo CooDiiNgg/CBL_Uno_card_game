@@ -27,6 +27,15 @@ public enum Value {
         return val;
     }
 
+    public static Value fromValue(int value) {
+        for (Value v : values()) {
+            if (v.val == value) {
+                return v;
+            }
+        }
+        throw new IllegalArgumentException("Unknown card value: " + value);
+    }
+
     public static Value[] getAllValues() {
         return new Value[]{ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, ZERO, SKIP, REVERSE, DRAW_TWO};
     }
