@@ -27,17 +27,22 @@ public class BoardController implements GameListener {
         this.turnScheduler = new TurnScheduler(gameController);
 
         gamePanel.setCardActionListener(e -> playCard(Integer.parseInt(e.getActionCommand())));
-        gamePanel.getDrawButton().addActionListener(e -> gameController.drawCard());
+        gamePanel.getDrawButton().addActionListener(e -> {
+            if (!gamePanel.isAnimating()) {
+                gameController.drawCard();
+            }
+        });
         gamePanel.getSaveButton().addActionListener(e -> saveGame());
         gamePanel.getMenuButton().addActionListener(e -> {
             turnScheduler.stop();
+            gamePanel.cancelAnimations();
             mainFrame.showMenu();
         });
         gameController.addListener(this);
     }
 
     private void playCard(int handIndex) {
-        if (!gameController.isHumanTurn()) {
+        if (gamePanel.isAnimating() || !gameController.isHumanTurn()) {
             return;
         }
         Card card = gameController.getHumanPlayer().getHand().getCard(handIndex);
@@ -54,6 +59,9 @@ public class BoardController implements GameListener {
     }
 
     private void saveGame() {
+        if (gamePanel.isAnimating()) {
+            return;
+        }
         String saveName = JOptionPane.showInputDialog(mainFrame, "Save name:");
         if (saveName == null) {
             return;
@@ -78,25 +86,36 @@ public class BoardController implements GameListener {
 
     @Override
     public void onGameStarted(GameState gameState) {
+        gamePanel.cancelAnimations();
         refresh();
         gamePanel.setStatus("It's " + gameState.getCurrentPlayer().getName() + "'s turn");
+        if (gameController.isHumanTurn()) {
+            gamePanel.showYourTurn();
+        }
         scheduleBotTurn();
     }
 
     @Override
     public void onCardPlayed(Player player, Card card) {
         gamePanel.setStatus(player.getName() + " played " + card);
+        gamePanel.animatePlay(player, card);
     }
 
     @Override
     public void onCardsDrawn(Player player, int amount) {
+        gamePanel.animateDraw(player, amount);
         gamePanel.setStatus(player.getName() + " drew " + amount + (amount == 1 ? " card" : " cards"));
     }
 
     @Override
     public void onTurnChanged(Player player) {
-        refresh();
-        scheduleBotTurn();
+        gamePanel.afterAnimations(() -> {
+            refresh();
+            if (gameController.isHumanTurn()) {
+                gamePanel.showYourTurn();
+            }
+            scheduleBotTurn();
+        });
     }
 
     @Override
@@ -107,7 +126,9 @@ public class BoardController implements GameListener {
     @Override
     public void onGameOver(Player winner) {
         turnScheduler.stop();
-        refresh();
-        JOptionPane.showMessageDialog(mainFrame, winner.getName() + " wins!", "Game over", JOptionPane.INFORMATION_MESSAGE);
+        gamePanel.afterAnimations(() -> {
+            refresh();
+            JOptionPane.showMessageDialog(mainFrame, winner.getName() + " wins!", "Game over", JOptionPane.INFORMATION_MESSAGE);
+        });
     }
 }
