@@ -1,78 +1,116 @@
-# UNO Java Swing Project – Product Backlog
+# UNO Java Swing Project – Final Product Backlog
 
 **Project:** UNO Card Game  
-**Platform:** Java + Swing  
+**Course:** Programming (2IP90), CBL Java Application Development  
+**Platform:** Java + Swing, with an additional terminal interface  
+
 ---
 
 ## 1. Project Idea
 
-Java Gui project to implement a playable version of the UNO card game. The game will be designed for one human player against a computer opponent. The project will focus on object-oriented programming, modular design, and separation of game logic from the user interface.
+A playable UNO game for one human player against a computer opponent. The Swing interface allows the player to play cards, draw cards, choose wild-card colours, and save or load a game. The application maintains hands, piles, turns, direction, and draw penalties, gives feedback, and announces a winner when a hand becomes empty.
+
+The project separates model, logic, controller, view, bot, persistence, and utility packages. Both interfaces share the same game engine. The computer-opponent scope includes a Minimax strategy and a basic strategy for comparison.
 
 ---
 
-## 2. Planned Advanced Technical Topics
+## 2. Advanced Technical Topics
 
 ### Advanced Topic 1 – Game-State Persistence, Serialization, and Compression
 
-- **Encapsulation**
-- **Decapsulation**
-- **Serialization**
-- **Deserialization**
-- **Compression**
-- **Decompression**
+Collect the game data in `SaveState`, serialize it into versioned UTF-8 bytes with `GameSerializer`, and compress it using the custom `Compressor`. `SaveManager` writes the result to a `.unosave` file. Loading reverses these operations and rebuilds the game objects.
 
-### Advanced Topic 2 – Computer Bot Decision-Making
+The compression algorithm uses literal bytes and references to repeated earlier sequences. References contain a 12-bit distance and a 4-bit encoded length. The format includes a `UZ` signature, original byte count, and entry flags. Compression is lossless, but does not guarantee a smaller file for every input.
 
-- **Basic Bot Logic:** Implement a simple bot that plays legal cards based on straightforward rules.
-- **Result-Based Bot Logic:** Enhance the bot to evaluate possible moves and choose the best one based on the current game state, potentially using a scoring system or predefined rules.
-- **Advanced Bot Logic (Stretch Goal):** Implement a more sophisticated bot using algorithms like Minimax or a neural network
+### Advanced Topic 2 – Computer Bot Using Minimax
+
+Implement a depth-limited Minimax computer opponent through `BotStrategy`. It will simulate legal moves, examine opponent responses, and select the move with the best resulting evaluation. The algorithm uses lookahead to evaluate possible consequences before selecting an action.
+
+The work includes isolated state simulation, legal move generation, wild-colour choices, terminal win/loss scoring, a cutoff heuristic, and bounded search. MAX/MIN roles must follow the actual player to move: Skip and Reverse can give the same player another turn.
+
+UNO has hidden hands and uncertain draws. The information model must therefore be explicitly selected and documented: a full-information educational approximation or an approach using sampled possible hidden states. Ordinary perfect-information Minimax must not be presented as a complete solution to hidden-information UNO. The chosen simplifications and their effect on fairness and decisions must be explained.
 
 ---
 
-# 3. Product Backlog
+## 3. Product Backlog
+
+**Priorities:** Must = required final scope; Should = valuable improvement; Could = optional extension.  
+
+For card-specific demonstrations, prepare a named save fixture with documented hands, top card, turn, and penalty. Use the same fixtures when repeating a demonstration.
+
+### Core Game and Architecture
 
 | # | Priority | Name | How to Demo | Notes |
 |---|---|---|---|---|
-| 1 | Must | Create project structure | Open the project and show the main packages/classes compiling successfully. | Create a clear structure for model, game logic, bot logic, persistence, and GUI. Possible classes: `Card`, `Deck`, `Player`, `Game`, `Bot`, `GameFrame`. |
-| 2 | Must | Create UNO Card model | Create several cards in code and print/show their colour, value, and type correctly. | Support Red, Yellow, Green, Blue and Wild cards. Include number cards and action cards. |
-| 3 | Must | Create and shuffle UNO deck | Start the program and demonstrate that a full deck is created and shuffled into a different order. | The deck should contain the card types needed for the selected UNO rules. |
-| 4 | Must | Deal starting hands | Start a new game and show that the player and computer each receive the correct number of cards. | Remaining cards become the draw pile. One card starts the discard pile. |
-| 5 | Must | Implement basic card matching rules | Attempt to play valid and invalid cards and show that only legal cards are accepted. | A card can normally be played when colour, number, or action type matches the top discard card. Wild cards are exceptions. |
-| 6 | Must | Implement player turns | Play several turns and show that control alternates correctly between player and computer. | Game state should clearly track the current player. |
-| 7 | Must | Draw card action | Press the Draw button when no suitable card is available and show a card being added to the player's hand. | The game should continue according to the rules chosen by the team. |
-| 8 | Must | Build main Swing game window | Run the application and show the player's cards, top discard card, draw pile/button, and turn information. | Use a simple functional layout first. Visual polish can come later. |
-| 9 | Must | Make cards clickable | Click a card in the player's hand and show that a legal card is played while an illegal card is rejected. | Buttons or custom card components can be used. |
-| 10 | Must | Implement Skip card | Play a Skip card and show that the opponent loses the appropriate turn. | Must work for both the human and computer player. |
-| 11 | Must | Implement Reverse card | Play a Reverse card and show the expected behaviour. | With two players, Reverse can behave like Skip. This rule should be documented. |
-| 12 | Must | Implement Draw Two card | Play a Draw Two and show the opponent receiving two cards and the turn continuing correctly. | Avoid stacking rules unless specifically added later. |
-| 13 | Must | Implement Wild card colour selection | Play a Wild card and choose the next active colour using a Swing dialog or colour buttons. | Computer should also be able to choose a colour automatically. |
-| 14 | Must | Implement Wild Draw Four | Play a Wild Draw Four and show colour selection plus four cards being added to the opponent's hand. | We can use a simplified rule unless there is enough time to implement the official challenge rule. |
-| 15 | Must | Add basic computer opponent | Play several rounds and show the computer choosing and playing legal cards without user input. | First version may simply choose from available legal moves using straightforward rules. |
-| 16 | Must | Detect UNO and game winner | Reduce a hand to one card and then zero cards and show the correct UNO/win messages. | A visible UNO button or automatic UNO indication can be used. |
-| 17 | Should | Add New Game / Restart | Finish or interrupt a game, press New Game, and show a fresh shuffled game starting correctly. | Reset all game state without restarting the Java application. |
-| 18 | Should | Implement result-based bot logic | Play several turns and demonstrate that the bot evaluates possible moves instead of always choosing the first legal card. | The bot can look through a rule/result file or predefined scoring data and select its next move based on the current situation. This is part of Advanced Topic 2. |
-| 19 | Could | Add simple card and turn animations | Play/draw a card and show a small visual transition, highlight, or timed message. | Keep animations lightweight. They are visual polish, not a core technical requirement. |
-| 20 | Should | Encapsulate game state for saving | Start a game and show that all important state can be collected into a dedicated save-state object or structure. | Part of Advanced Topic 1. Keep persistence logic separate from normal gameplay where possible. |
-| 21 | Should | Serialize and save game state | Start a game, play several turns, save it, and show that the game state is written to a file. | Research Java serialization or another structured serialization approach. |
-| 22 | Should | Compress saved game data | Save a game and demonstrate that the serialized data is compressed before storage. | Research suitable Java compression streams or libraries available within the project rules. |
-| 23 | Should | Decompress and deserialize saved game | Load a saved file and demonstrate that hands, piles, active colour, and turn are restored correctly. | Include decompression, deserialization, and basic handling for invalid or missing files. |
-| 24 | Should | Add simple score system | Complete a game and show the winner receiving points or a win counter. | Keep scoring simple if official UNO scoring would add unnecessary complexity. |
-| 25 | Should | Add start screen and instructions | Launch the program and show a simple menu with Start Game, Load Game, Instructions, and Exit. | Instructions should explain the rules used in this version. |
-| 26 | Should | Improve GUI styling | Show a clean game screen with readable cards, colours, buttons, spacing, and status messages. | Focus on usability rather than complex graphics or heavy animations. |
-| 27 | Must | Test core game rules | Run automated or repeatable tests for deck creation, matching rules, drawing, action cards, bot decisions, and win detection. | Use JUnit if available/allowed, plus manual GUI testing where appropriate. |
-| 28 | Must | Handle edge cases | Demonstrate that the game does not crash when the draw pile becomes empty, a save file is missing, or unusual action-card sequences occur. | Rebuild the draw pile from the discard pile when necessary. |
-| 29 | Could | Add selectable bot difficulty | Start a game and choose between different levels of computer behaviour. | Example: Easy chooses simple valid moves, Normal uses the result-based decision system. |
-| 30 | Must | Write README.md | Open the README and follow the instructions to build and run the game successfully. | Include Java version, how to build/run the project, controls, UNO rules used, bot behaviour, save/load information, and known limitations. |
-| 31 | Could / Should | Create an advanced bot using Minimax or a neural network | Run a match and compare the advanced bot's decisions with the normal result-based bot. | Preferred option is a well-designed Minimax/search-based approach. A small neural-network experiment may be attempted if realistic and permitted. This is a stretch extension of Advanced Topic 2, not required for the basic game to work. |
+| 1 | Must | Separate project responsibilities | 1. Open the package tree. 2. Identify model, logic, controller, view, bot, persistence, and util. 3. Trace a card click through validation, state change, and display refresh. | `GameController` coordinates; `GameEngine` executes rules; `GameListener` communicates events. |
+| 2 | Must | Represent cards, hands, and players | 1. Inspect number, action, and wild cards in a fixture. 2. Show their colours/values and player name, hand, and bot flag. 3. Add/remove a card in a verification harness and check hand size. | `Card`, `Hand`, `Player`, `Color`, and `Value`. |
+| 3 | Must | Create and shuffle the selected deck | 1. Construct a deck in a verification harness. 2. Check 60 cards and documented multiplicities. 3. Compare several shuffled orders. | `Deck`: 60 cards, with one of each regular colour/value combination and four of each wild type. |
+| 4 | Must | Start a game and deal hands | 1. Launch the GUI. 2. Click Start Game and enter a name. 3. Confirm seven cards each, one non-wild discard, and 45 draw cards. 4. Repeat with a blank name and confirm the default. | Starting discard effects are not executed. |
+| 5 | Must | Validate ordinary card matching | 1. Load a red-five fixture without a penalty. 2. Play a red card or a blue five and confirm acceptance. 3. Reload and try a blue seven; confirm rejection without state change. | `RuleValidator` matches colour or value. |
+| 6 | Must | Advance and protect turns | 1. Play a regular card. 2. Confirm the bot acts and control returns appropriately. 3. Try human input during the bot turn and confirm no human move occurs. | `GameState` tracks index and direction; controllers guard input. |
+| 7 | Must | Draw and end the turn | 1. Record human hand size. 2. Click Draw without a pending penalty. 3. Confirm one added card and a turn change. | Drawing ends the turn and is allowed even when another legal move exists. |
+| 8 | Must | Apply Skip and Reverse | 1. Play Skip from a fixture and confirm the opponent loses its turn. 2. Repeat with Reverse. 3. Confirm direction changes and the same player acts again. | Verify both human and bot use; two-player rules. |
+| 9 | Must | Apply Draw Two and stacking | 1. Play +2 against a hand without a response; confirm two draws and a skipped turn. 2. Reload with a stacking card. 3. Stack +2 and confirm a penalty of four. 4. Take it with Draw and confirm reset. | A player without a stacking card takes the penalty automatically. A player with a response may stack or draw. +4 is permitted on +2. |
+| 10 | Must | Select the Wild colour | 1. Play Wild and select blue. 2. Confirm blue becomes the active colour. 3. Reload and cancel the dialog; confirm no move is committed. | `ColorPickerDialog`; bot also selects a regular colour. |
+| 11 | Must | Apply Wild Draw Four | 1. Play +4 and choose a colour. 2. Confirm four draws and a skipped turn without a response. 3. Reload and stack another +4. 4. Confirm +2 cannot answer an active +4 penalty. | Adds four to the penalty. Only +4 can answer +4. No challenge or restriction based on other cards in hand. |
+| 12 | Must | Announce UNO and the winner | 1. Load a two-card hand and play one. 2. Confirm UNO feedback. 3. Play the final card legally. 4. Confirm the winner and no further gameplay. | Automatic UNO at one card, without a manual-call penalty. Empty hand ends the game; GUI stops bot scheduling. |
+| 13 | Must | Recycle discards safely | 1. Load an empty draw deck with several discards. 2. Draw and confirm the top discard remains. 3. Check card conservation. 4. Repeat with only one discard and confirm no crash. | Recycled wild cards return to `SPECIAL`; no-card drawing advances the turn. |
+
+### User Interfaces
+
+| # | Priority | Name | How to Demo | Notes |
+|---|---|---|---|---|
+| 14 | Must | Display a usable Swing board | 1. Start a game. 2. Locate hand, top discard, opponent count, turn, and action buttons. 3. Load a large hand and scroll horizontally. | `MainFrame`, `GamePanel`, `CardComponent`; readable coloured buttons. |
+| 15 | Must | Click cards and receive feedback | 1. Confirm legal cards have orange borders. 2. Click a legal card and confirm the discard changes. 3. Click an illegal card and confirm a rejection message. | Illegal cards remain clickable on the human turn to provide feedback. |
+| 16 | Must | Navigate the menu and start fresh | 1. Confirm Start Game, Load Game, and Exit. 2. Start a game, return to Menu, then Start Game again. 3. Confirm fresh state. 4. Exit through the menu. | Use Menu → Start Game to begin a fresh game. |
+| 17 | Must | Schedule basic bot turns | 1. Play a regular card. 2. Observe the brief delay. 3. Confirm the window repaints. 4. Return to Menu during the delay and confirm no pending bot move runs. | `TurnScheduler`: one-shot 800 ms Swing timer; search responsiveness is covered separately. |
+| 18 | Should | Provide shared terminal gameplay | 1. Run `java -cp out uno.Main`. 2. Start a game. 3. Use a card number, `d`, `h`, `s name`, `l name`, and `q`. 4. Compare rules/save behaviour with the GUI. | `TuiView` uses the same controller and engine. |
+| 19 | Should | Explain controls and selected rules | 1. Open the README. 2. Follow the controls and rules. 3. Compare the descriptions with gameplay. | Document the simplified deck, drawing, stacking, two-player Reverse, and automatic UNO behaviour. |
+
+### Advanced Topic 1: Persistence and Compression
+
+| # | Priority | Name | How to Demo | Notes |
+|---|---|---|---|---|
+| 20 | Must | Capture and rebuild complete state | 1. Prepare known hands, piles, turn, direction, active wild colour, and penalty. 2. Convert through `SaveState`. 3. Compare every field and pile order after reconstruction. | `fromGameState()` / `toGameState()`; do not create a new shuffled deck when restoring. |
+| 21 | Must | Serialize versioned game data | 1. Serialize a fixture. 2. Inspect UTF-8 fields and `COLOR:VALUE` cards. 3. Deserialize and compare. 4. Try an unsupported version and confirm a controlled error. | `GameSerializer`: ordered custom text format, version 1. |
+| 22 | Must | Compress and decompress bytes | 1. Serialize a game. 2. Compress, decompress, and compare exact bytes. 3. Report both sizes. 4. Repeat for empty, repeated, and nonrepetitive input. | Custom LZ-style references: distance 1–4095, length 3–18, `UZ` header and flags. Smaller output is not guaranteed. |
+| 23 | Must | Save, list, and load games | 1. Save as `demo_save`. 2. Confirm `saves/demo_save.unosave`. 3. Return to Menu and select it through Load Game. 4. Compare hands, piles, turn, colour, direction, and penalty. | `SaveManager`; sorted list filters `.unosave` files. Terminal also supports saving/loading. |
+| 24 | Must | Handle save errors | 1. Try a save name containing `/`. 2. Load a missing save via the terminal. 3. Try wrong-signature, truncated, invalid-reference, and invalid-field fixtures. 4. Confirm useful errors and continued interface usability. | `SaveException`; saving a finished game is rejected. Checks do not constitute a checksum. |
+
+### Advanced Topic 2: Minimax Computer Bot
+
+| # | Priority | Name | How to Demo | Notes |
+|---|---|---|---|---|
+| 25 | Must | Retain a baseline bot and strategy interface | 1. Use `BasicBot`. 2. Confirm first-legal-card play, drawing when blocked, and most-frequent-colour selection. 3. Show the strategy constructor/setter. | `BotStrategy` separates decision-making from game execution. |
+| 26 | Must | Define Minimax assumptions and evaluation | 1. Present hidden-card/draw assumptions. 2. Explain terminal scores and the cutoff heuristic. 3. Evaluate two fixed positions and justify their ordering. | Document full-information advantage or sampling approximation; choose and justify heuristic weights. |
+| 27 | Must | Simulate moves without changing the live game | 1. Copy a fixture. 2. Simulate regular, wild, Skip/Reverse, draw, and penalty moves. 3. Compare against engine behaviour. 4. Confirm original hands, piles, and listeners remain unchanged. | Independent mutable state; include refill behaviour under the chosen information model. |
+| 28 | Must | Choose moves with depth-limited Minimax | 1. Confirm an immediate winning move is selected. 2. Use a fixture with an avoidable losing reply within the search horizon and confirm avoidance. 3. Inspect MAX/MIN roles in a search trace. | Include wild-colour branches, terminal checks, cutoff scores, deterministic ties, and repeated turns from action cards. |
+| 29 | Must | Integrate the searched action | 1. Start a Minimax game. 2. Exercise regular, wild, drawing, and penalty turns. 3. Confirm legal actions and that the chosen wild colour matches the evaluated action. | Keep card selection and wild-colour selection consistent with the evaluated move. |
+| 30 | Must | Bound search and keep Swing responsive | 1. Run a branching-heavy fixture. 2. Measure against a documented search budget. 3. Confirm repaint/input responsiveness. 4. Leave/load another game and confirm stale results cannot alter it. | Depth/time/node limit, legal fallback, background search and safe UI updates. Alpha-beta pruning is optional. |
+| 31 | Must | Compare and explain bot decisions | 1. Run both bots on fixed fixtures. 2. Record choices, depth, evaluations, node counts, and time. 3. Explain a choice changed by lookahead. 4. State limitations. | Controlled draw order/randomness for reproducibility; no guaranteed win-rate improvement claimed. |
+
+### Verification and Final Delivery
+
+| # | Priority | Name | How to Demo | Notes |
+|---|---|---|---|---|
+| 32 | Must | Record repeatable verification | 1. Run documented checks for dealing, matching, actions, wins, recycling, save round trips, malformed files, and bot decisions. 2. Record expected/actual results. 3. Fix failures and rerun affected checks. | Use automated and/or reproducible manual checks with documented expected results. |
+| 33 | Must | Complete README instructions | 1. Follow the README from a clean directory. 2. Build and launch GUI/terminal modes. 3. Verify Java version, controls, rules, bot assumptions, and save location are explained. | Include Java requirements and Windows and macOS/Linux build instructions. |
+| 34 | Must | Verify portable, timely startup | 1. Build/run on Windows, macOS, and Linux using the README. 2. Confirm the Swing application is usable within one minute of launch. 3. Record platform/JDK results. | Assignment Section 5.3: Windows, macOS, Linux, and usability within one minute of launch. |
+| 35 | Must | Prepare the advanced-topic reflection | 1. Open a maximum-two-page PDF covering both topics. 2. Check motivation, research/learning, application, challenges, decisions, and impact. 3. Explain actual implementation and cite research sources used. | Assignment Section 4; describe limitations and actual contributions. |
+| 36 | Must | Package the final submission | 1. Create one ZIP with runnable project/full source, README, final backlog, and reflection PDF. 2. Extract into a clean directory. 3. Build and complete a game/save/load smoke test. | Assignment Section 5.3: Canvas deadline 23 October 2026 at 23:59. Include the final versions of all documents. |
+| 37 | Could | Select bot difficulty in the UI | 1. Choose Basic or Minimax before starting. 2. Start each mode and confirm the strategy used. | Optional UI selection between the basic and Minimax strategies. |
 
 ---
 
-# 4. Definition of Done
+## 4. Definition of Done
 
-A backlog item is considered complete when:
+A backlog item is complete when:
 
-1. The feature is implemented.
-2. The project compiles and runs.
-3. All tests pass.
-4. The feature does not break previously completed core functionality.
-5. Important code is reasonably organised.
+1. Its implementation/deliverable is finished and matches the selected rules.
+2. Its demo steps produce the expected results and repeatable evidence is recorded.
+3. Relevant automated or documented manual checks pass, including affected regression checks.
+4. Integration does not break existing gameplay, persistence, or interface behaviour.
+5. Code has clear responsibilities, readable naming, and appropriate documentation.
+6. For advanced-topic work, the team can explain the concepts, design decisions, and limitations.
+
+For final delivery, complete all Must items, record deferred Should/Could items, verify platform/startup requirements, and include all required documents.
