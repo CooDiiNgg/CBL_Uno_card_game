@@ -5,18 +5,23 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.Shape;
+import java.awt.Transparency;
 import java.awt.font.GlyphVector;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.JButton;
 import uno.model.Card;
 import uno.util.Color;
 
-/** Scalable card artwork shared by the hand, discard pile, and animations. */
 public class CardComponent extends JButton {
-    private final Card card;
+    private static final Map<String, BufferedImage> IMAGE_CACHE = new HashMap<>();
+    private Card card;
     private boolean playable;
 
     public CardComponent(Card card) {
@@ -32,17 +37,80 @@ public class CardComponent extends JButton {
 
     public Card getCard() { return card; }
 
+    public void setCard(Card card) {
+        if (card == null || card == this.card) {
+            return;
+        }
+        this.card = card;
+        setToolTipText(card.toString());
+        getAccessibleContext().setAccessibleName(card.toString());
+        repaint();
+    }
+
     public void setPlayable(boolean playable) {
         this.playable = playable;
         repaint();
     }
 
+    public boolean isHighlighted() {
+        return playable && isEnabled();
+    }
+
     @Override
     protected void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics.create();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.scale(getWidth() / 90.0, getHeight() / 130.0);
-        g.setColor(playable && isEnabled() ? new java.awt.Color(0xFFCA55) : java.awt.Color.WHITE);
+        paintCard(g, card, isHighlighted());
+        g.dispose();
+    }
+
+    public static void paintCard(Graphics2D graphics, Card card, boolean highlighted) {
+        Graphics2D g = (Graphics2D) graphics.create();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(cardImage(card, highlighted, resolutionFor(g)), 0, 0, 90, 130, null);
+        g.dispose();
+    }
+
+    static double resolutionFor(Graphics2D g) {
+        double deviceScale = g.getDeviceConfiguration().getDefaultTransform().getScaleX();
+        return Math.max(2, Math.ceil(deviceScale * 2));
+    }
+
+    static BufferedImage createCardImage(double resolution) {
+        int width = (int) Math.ceil(90 * resolution);
+        int height = (int) Math.ceil(130 * resolution);
+        if (GraphicsEnvironment.isHeadless()) {
+            return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE);
+        }
+        return GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
+                .getDefaultConfiguration().createCompatibleImage(width, height, Transparency.TRANSLUCENT);
+    }
+
+    static Graphics2D prepareImage(BufferedImage image, double resolution) {
+        Graphics2D g = image.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.scale(resolution, resolution);
+        return g;
+    }
+
+    private static BufferedImage cardImage(Card card, boolean highlighted, double resolution) {
+        String key = card.getColor().name() + ":" + card.getValue() + ":" + highlighted + ":" + resolution;
+        BufferedImage image = IMAGE_CACHE.get(key);
+        if (image == null) {
+            image = createCardImage(resolution);
+            Graphics2D g = prepareImage(image, resolution);
+            paintArtwork(g, card, highlighted);
+            g.dispose();
+            IMAGE_CACHE.put(key, image);
+        }
+        return image;
+    }
+
+    private static void paintArtwork(Graphics2D g, Card card, boolean highlighted) {
+        g.setColor(highlighted ? new java.awt.Color(0xFFCA55) : java.awt.Color.WHITE);
         g.fillRoundRect(0, 0, 90, 130, 12, 12);
         g.setColor(toAwtColor(card.getColor()));
         g.fillRoundRect(4, 4, 82, 122, 9, 9);
@@ -61,7 +129,7 @@ public class CardComponent extends JButton {
         g.setStroke(new BasicStroke(2));
         g.setColor(new java.awt.Color(255, 255, 255, 210));
         g.draw(oval);
-        String symbol = symbol();
+        String symbol = symbol(card);
         float size = card.getValue() <= 9 ? 64 : symbol.length() > 2 ? 23 : 43;
         Font font = new Font(Font.SANS_SERIF, Font.BOLD | Font.ITALIC, (int) size);
         GlyphVector glyphs = font.createGlyphVector(g.getFontRenderContext(), symbol);
@@ -75,16 +143,15 @@ public class CardComponent extends JButton {
         paintCorner(g, symbol);
         g.rotate(Math.PI, 45, 65);
         paintCorner(g, symbol);
-        g.dispose();
     }
 
-    private void paintCorner(Graphics2D g, String symbol) {
+    private static void paintCorner(Graphics2D g, String symbol) {
         g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, symbol.length() > 2 ? 9 : 16));
         g.setColor(java.awt.Color.WHITE);
         g.drawString(symbol, 8, 21);
     }
 
-    private String symbol() {
+    private static String symbol(Card card) {
         switch (card.getValue()) {
             case 10: return "⊘";
             case 11: return "⇄";

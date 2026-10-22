@@ -1,7 +1,9 @@
 package uno.controller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import uno.bot.BasicBot;
 import uno.bot.BotStrategy;
 import uno.logic.GameEngine;
@@ -12,12 +14,15 @@ import uno.model.Hand;
 import uno.model.Player;
 import uno.persistence.SaveException;
 import uno.persistence.SaveManager;
+import uno.util.BotDifficulty;
 import uno.util.Color;
 import uno.util.Constants;
 
 public class GameController {
     private GameEngine gameEngine;
-    private BotStrategy botStrategy;
+    private BotStrategy easyStrategy;
+    private BotStrategy hardStrategy;
+    private Map<Player, BotStrategy> botStrategies;
     private List<GameListener> listeners;
 
     public GameController() {
@@ -28,7 +33,9 @@ public class GameController {
         if (botStrategy == null) {
             throw new IllegalArgumentException("Bot strategy cannot be null");
         }
-        this.botStrategy = botStrategy;
+        this.easyStrategy = new BasicBot();
+        this.hardStrategy = botStrategy;
+        this.botStrategies = new HashMap<>();
         this.listeners = new ArrayList<>();
     }
 
@@ -46,22 +53,50 @@ public class GameController {
         if (botStrategy == null) {
             throw new IllegalArgumentException("Bot strategy cannot be null");
         }
-        this.botStrategy = botStrategy;
+        this.hardStrategy = botStrategy;
     }
 
     public void startNewGame(String playerName) {
+        startNewGame(playerName, new BotDifficulty[]{BotDifficulty.HARD});
+    }
+
+    public void startNewGame(String playerName, BotDifficulty[] botDifficulties) {
+        if (botDifficulties == null || botDifficulties.length < Constants.MIN_PLAYERS - 1
+                || botDifficulties.length > Constants.MAX_PLAYERS - 1) {
+            throw new IllegalArgumentException("A game needs between " + Constants.MIN_PLAYERS
+                    + " and " + Constants.MAX_PLAYERS + " players");
+        }
         if (playerName == null || playerName.trim().isEmpty()) {
             playerName = Constants.DEFAULT_PLAYER_NAME;
         }
-        Player[] players = new Player[]{
-                new Player(playerName.trim(), new Hand(), false),
-                new Player(Constants.BOT_NAME, new Hand(), true)
-        };
-        startGame(GameEngine.createGame(players));
+        Player[] players = new Player[botDifficulties.length + 1];
+        players[0] = new Player(playerName.trim(), new Hand(), false);
+        Map<Player, BotStrategy> strategies = new HashMap<>();
+        for (int i = 0; i < botDifficulties.length; i++) {
+            String botName = botDifficulties.length == 1 ? Constants.BOT_NAME : Constants.BOT_NAME + " " + (i + 1);
+            players[i + 1] = new Player(botName, new Hand(), true);
+            strategies.put(players[i + 1], strategyFor(botDifficulties[i]));
+        }
+        startGame(GameEngine.createGame(players), strategies);
     }
 
     public void loadGame(String saveName) throws SaveException {
-        startGame(SaveManager.load(saveName));
+        GameState gameState = SaveManager.load(saveName);
+        Map<Player, BotStrategy> strategies = new HashMap<>();
+        for (Player player : gameState.getPlayers()) {
+            if (player.isBot()) {
+                strategies.put(player, hardStrategy);
+            }
+        }
+        startGame(gameState, strategies);
+    }
+
+    public BotDifficulty getBotDifficulty(Player player) {
+        BotStrategy strategy = botStrategies.get(player);
+        if (strategy == null) {
+            return null;
+        }
+        return strategy == easyStrategy ? BotDifficulty.EASY : BotDifficulty.HARD;
     }
 
     public String saveGame(String saveName) throws SaveException {
@@ -110,6 +145,10 @@ public class GameController {
         }
         GameState gameState = getGameState();
         Player botPlayer = gameState.getCurrentPlayer();
+        BotStrategy botStrategy = botStrategies.get(botPlayer);
+        if (botStrategy == null) {
+            botStrategy = hardStrategy;
+        }
         Card card = botStrategy.chooseCard(gameState, botPlayer);
         if (card == null || !gameEngine.canPlay(card)) {
             gameEngine.drawTurn();
@@ -169,7 +208,15 @@ public class GameController {
         return gameEngine.getWinner();
     }
 
-    private void startGame(GameState gameState) {
+    private BotStrategy strategyFor(BotDifficulty difficulty) {
+        if (difficulty == BotDifficulty.EASY) {
+            return easyStrategy;
+        }
+        return hardStrategy;
+    }
+
+    private void startGame(GameState gameState, Map<Player, BotStrategy> strategies) {
+        botStrategies = strategies;
         gameEngine = new GameEngine(gameState);
         for (GameListener listener : listeners) {
             gameEngine.addListener(listener);

@@ -1,11 +1,14 @@
 package uno.controller;
 
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.JOptionPane;
 import uno.logic.GameListener;
 import uno.model.Card;
 import uno.model.GameState;
 import uno.model.Player;
 import uno.persistence.SaveException;
+import uno.util.BotDifficulty;
 import uno.util.Color;
 import uno.view.GamePanel;
 import uno.view.MainFrame;
@@ -87,6 +90,14 @@ public class BoardController implements GameListener {
     @Override
     public void onGameStarted(GameState gameState) {
         gamePanel.cancelAnimations();
+        Map<Player, String> seatDetails = new HashMap<>();
+        for (Player player : gameState.getPlayers()) {
+            BotDifficulty difficulty = gameController.getBotDifficulty(player);
+            if (difficulty != null) {
+                seatDetails.put(player, difficulty.getDisplayName());
+            }
+        }
+        gamePanel.setSeatDetails(seatDetails);
         refresh();
         gamePanel.setStatus("It's " + gameState.getCurrentPlayer().getName() + "'s turn");
         if (gameController.isHumanTurn()) {

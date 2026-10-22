@@ -2,7 +2,7 @@ package uno.controller;
 
 import javax.swing.JOptionPane;
 import uno.persistence.SaveException;
-import uno.util.Constants;
+import uno.view.GameSetupPanel;
 import uno.view.MainFrame;
 import uno.view.MenuPanel;
 
@@ -18,18 +18,19 @@ public class MenuController {
         this.gameController = gameController;
 
         MenuPanel menuPanel = mainFrame.getMenuPanel();
-        menuPanel.getStartButton().addActionListener(e -> startGame());
+        menuPanel.getStartButton().addActionListener(e -> mainFrame.showSetup());
         menuPanel.getLoadButton().addActionListener(e -> loadGame());
         menuPanel.getExitButton().addActionListener(e -> mainFrame.dispose());
+
+        GameSetupPanel setupPanel = mainFrame.getSetupPanel();
+        setupPanel.getStartButton().addActionListener(e -> startGame());
+        setupPanel.getBackButton().addActionListener(e -> mainFrame.showMenu());
     }
 
     private void startGame() {
-        String playerName = JOptionPane.showInputDialog(mainFrame, "Your name:", Constants.DEFAULT_PLAYER_NAME);
-        if (playerName == null) {
-            return;
-        }
+        GameSetupPanel setupPanel = mainFrame.getSetupPanel();
         mainFrame.showGame();
-        gameController.startNewGame(playerName);
+        gameController.startNewGame(setupPanel.getPlayerName(), setupPanel.getBotDifficulties());
     }
 
     private void loadGame() {

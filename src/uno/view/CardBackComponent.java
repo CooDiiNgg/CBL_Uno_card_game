@@ -9,10 +9,13 @@ import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.JButton;
 
-/** Shared face-down artwork, optionally displayed as a clickable draw stack. */
 public class CardBackComponent extends JButton {
+    private static final Map<String, BufferedImage> IMAGE_CACHE = new HashMap<>();
     private final boolean drawPile;
     private int remaining;
 
@@ -30,6 +33,10 @@ public class CardBackComponent extends JButton {
         getAccessibleContext().setAccessibleName(drawPile ? "Draw a card" : "Face-down card");
     }
 
+    public int getRemaining() {
+        return remaining;
+    }
+
     public void setRemaining(int remaining) {
         this.remaining = remaining;
         setToolTipText(remaining == 0 ? "Draw — recycle the discard pile if available"
@@ -42,6 +49,7 @@ public class CardBackComponent extends JButton {
     protected void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics.create();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g.scale(getWidth() / (drawPile ? 108.0 : 90.0), getHeight() / (drawPile ? 162.0 : 130.0));
         if (drawPile) {
             for (int offset = 10; offset >= 4; offset -= 3) {
@@ -53,8 +61,38 @@ public class CardBackComponent extends JButton {
                 g.drawRoundRect(offset, offset, 90, 130, 12, 12);
             }
         }
-        g.setColor(drawPile && isEnabled() && (getModel().isRollover() || hasFocus())
-                ? new Color(0xFFCA55) : Color.WHITE);
+        paintBack(g, drawPile && isEnabled() && (getModel().isRollover() || hasFocus()));
+        if (drawPile) {
+            g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
+            g.setColor(isEnabled() ? new Color(0xF5EEDB) : new Color(0xBECBBE));
+            String label = "DRAW · " + remaining;
+            g.drawString(label, (108 - g.getFontMetrics().stringWidth(label)) / 2, 157);
+        }
+        g.dispose();
+    }
+
+    public static void paintBack(Graphics2D graphics, boolean highlighted) {
+        Graphics2D g = (Graphics2D) graphics.create();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(backImage(highlighted, CardComponent.resolutionFor(g)), 0, 0, 90, 130, null);
+        g.dispose();
+    }
+
+    private static BufferedImage backImage(boolean highlighted, double resolution) {
+        String key = highlighted + ":" + resolution;
+        BufferedImage image = IMAGE_CACHE.get(key);
+        if (image == null) {
+            image = CardComponent.createCardImage(resolution);
+            Graphics2D g = CardComponent.prepareImage(image, resolution);
+            paintArtwork(g, highlighted);
+            g.dispose();
+            IMAGE_CACHE.put(key, image);
+        }
+        return image;
+    }
+
+    private static void paintArtwork(Graphics2D g, boolean highlighted) {
+        g.setColor(highlighted ? new Color(0xFFCA55) : Color.WHITE);
         g.fillRoundRect(0, 0, 90, 130, 12, 12);
         g.setPaint(new GradientPaint(0, 0, new Color(0x303D50), 90, 130, new Color(0x101723)));
         g.fillRoundRect(4, 4, 82, 122, 9, 9);
@@ -72,12 +110,5 @@ public class CardBackComponent extends JButton {
         g.drawString("UNO", labelX + 2, 77);
         g.setColor(new Color(0xFFE066));
         g.drawString("UNO", labelX, 74);
-        if (drawPile) {
-            g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
-            g.setColor(isEnabled() ? new Color(0xF5EEDB) : new Color(0xBECBBE));
-            String label = "DRAW · " + remaining;
-            g.drawString(label, (108 - g.getFontMetrics().stringWidth(label)) / 2, 157);
-        }
-        g.dispose();
     }
 }

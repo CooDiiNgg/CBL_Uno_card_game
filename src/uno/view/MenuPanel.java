@@ -75,7 +75,7 @@ public class MenuPanel extends JPanel {
         menu.add(loadButton, constraints);
         menu.add(exitButton, constraints);
         constraints.insets = new Insets(15, 0, 0, 0);
-        menu.add(label("You vs. the computer", 12, new Color(0xB8CEC2)), constraints);
+        menu.add(label("2 to 4 players · Easy or Hard computer opponents", 12, new Color(0xB8CEC2)), constraints);
         add(menu);
     }
 
@@ -91,7 +91,6 @@ public class MenuPanel extends JPanel {
         super.paintComponent(graphics);
         Graphics2D g = (Graphics2D) graphics.create();
         background.paint(g, getWidth(), getHeight());
-        // Keep decorative cards outside the controls on narrower windows.
         if (getWidth() >= 760) {
             for (int i = 0; i < decoration.length; i++) {
                 Graphics2D card = (Graphics2D) g.create();
@@ -112,7 +111,7 @@ public class MenuPanel extends JPanel {
         g.dispose();
     }
 
-    private static class MenuButton extends JButton {
+    static class MenuButton extends JButton {
         private final boolean primary;
 
         MenuButton(String text, boolean primary) {

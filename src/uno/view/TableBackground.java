@@ -12,9 +12,12 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 
-/** Draws a wooden rail and softly lit felt without external image assets. */
 final class TableBackground {
     private final TexturePaint feltTexture;
+    private BufferedImage cache;
+    private int cachedWidth;
+    private int cachedHeight;
+    private double cachedScale;
 
     TableBackground() {
         BufferedImage tile = new BufferedImage(96, 96, BufferedImage.TYPE_INT_ARGB);
@@ -31,11 +34,25 @@ final class TableBackground {
 
     void paint(Graphics2D graphics, int width, int height) {
         if (width <= 0 || height <= 0) { return; }
-        Graphics2D g = (Graphics2D) graphics.create();
+        double scale = graphics.getDeviceConfiguration().getDefaultTransform().getScaleX();
+        if (cache == null || cachedWidth != width || cachedHeight != height || cachedScale != scale) {
+            cache = graphics.getDeviceConfiguration().createCompatibleImage(
+                    (int) Math.ceil(width * scale), (int) Math.ceil(height * scale));
+            Graphics2D g = cache.createGraphics();
+            g.scale(scale, scale);
+            render(g, width, height);
+            g.dispose();
+            cachedWidth = width;
+            cachedHeight = height;
+            cachedScale = scale;
+        }
+        graphics.drawImage(cache, 0, 0, width, height, null);
+    }
+
+    private void render(Graphics2D g, int width, int height) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setPaint(new GradientPaint(0, 0, new Color(0x805135), width, height, new Color(0x35251E)));
         g.fillRect(0, 0, width, height);
-        // Grain is fixed, so it does not flicker while cards animate.
         for (int y = 2; y < height; y += 5) {
             g.setColor(new Color(0, 0, 0, y % 3 == 0 ? 26 : 12));
             g.drawLine(0, y, width, y + 3);
@@ -55,6 +72,5 @@ final class TableBackground {
         g.setColor(new Color(204, 190, 132, 90));
         g.setStroke(new BasicStroke(1.2f));
         g.drawRoundRect(23, 23, Math.max(1, width - 46), Math.max(1, height - 46), 40, 40);
-        g.dispose();
     }
 }
